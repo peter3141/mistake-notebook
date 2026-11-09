@@ -1,0 +1,16 @@
+{
+  "name": "个人综合管理 PersonalHub",
+  "short_name": "综合管理",
+  "description": "错题本 / 日程 / 待办 / 笔记 / 习惯打卡 / 番茄钟 / 目标管理，云端同步，手机电脑都能用",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

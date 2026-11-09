@@ -1,0 +1,52 @@
+{
+  "name": "mistake-notebook",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "verify:export": "node scripts/verify-export.mjs",
+    "verify:images": "node scripts/verify-image-arch.mjs",
+    "verify:migration": "node scripts/verify-migration.mjs",
+    "migrate:images": "node scripts/migrate-images.mjs",
+    "migrate:images:dry": "node scripts/migrate-images.mjs --dry-run",
+    "healthcheck": "node scripts/healthcheck.mjs"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.45.4",
+    "@tiptap/extension-image": "^2.6.6",
+    "@tiptap/extension-link": "^2.6.6",
+    "@tiptap/extension-placeholder": "^2.6.6",
+    "@tiptap/extension-table": "^2.6.6",
+    "@tiptap/extension-table-cell": "^2.6.6",
+    "@tiptap/extension-table-header": "^2.6.6",
+    "@tiptap/extension-table-row": "^2.6.6",
+    "@tiptap/react": "^2.6.6",
+    "@tiptap/starter-kit": "^2.6.6",
+    "clsx": "^2.1.1",
+    "docx": "^9.15.3",
+    "jszip": "^3.10.2",
+    "katex": "^0.16.11",
+    "lucide-react": "^0.454.0",
+    "next": "14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sharp": "^0.33.5",
+    "tesseract.js": "^5.1.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.7",
+    "@types/node": "^20.16.11",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html, body { height: 100%; }
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+input, textarea, select, button { font-family: inherit; }
+
+/* ---------------- 通用组件类 ---------------- */
+.card { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }
+.btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-45; }
+.btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
+.btn-ghost { @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50; }
+.btn-danger { @apply btn bg-rose-600 text-white hover:bg-rose-700; }
+.input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100; }
+.label { @apply mb-1 block text-xs font-semibold text-slate-500; }
+.badge { @apply inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600; }
+.chip { @apply inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600; }
+.section-title { @apply text-base font-semibold text-slate-800; }
+.muted { @apply text-sm text-slate-500; }
+
+/* ---------------- Tiptap 富文本 ---------------- */
+.tiptap { min-height: 160px; outline: none; line-height: 1.75; }
+.tiptap p { margin: .45em 0; }
+.tiptap h1 { font-size: 1.4em; font-weight: 700; margin: .6em 0 .3em; }
+.tiptap h2 { font-size: 1.2em; font-weight: 700; margin: .6em 0 .3em; }
+.tiptap ul { list-style: disc; padding-left: 1.5em; }
+.tiptap ol { list-style: decimal; padding-left: 1.5em; }
+.tiptap blockquote { border-left: 3px solid #c7d2fe; padding-left: .9em; color: #475569; margin: .6em 0; }
+.tiptap pre { background: #0f172a; color: #e2e8f0; border-radius: .5rem; padding: .8em 1em; overflow-x: auto; font-size: .875em; }
+.tiptap code { background: #f1f5f9; border-radius: .25rem; padding: .1em .3em; font-size: .9em; }
+.tiptap pre code { background: transparent; padding: 0; }
+.tiptap table { border-collapse: collapse; width: 100%; margin: .7em 0; }
+.tiptap th, .tiptap td { border: 1px solid #cbd5e1; padding: .4em .6em; min-width: 60px; }
+.tiptap th { background: #f8fafc; font-weight: 600; }
+.tiptap img { max-width: 100%; height: auto; border-radius: .5rem; margin: .4em 0; }
+.tiptap p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: #94a3b8; pointer-events: none; height: 0; }
+.tiptap .katex-display { overflow-x: auto; overflow-y: hidden; padding: .3em 0; }
+
+/* ---------------- 打印（验收 5：A4 / 不跨页 / 图片不截断） ---------------- */
+.print-only { display: none; }
+.print-sheet { background: #fff; }
+.print-block { break-inside: avoid; page-break-inside: avoid; }
+.print-avoid-break { break-after: avoid; page-break-after: avoid; }
+.print-header { border-bottom: 1px solid #94a3b8; padding-bottom: 8px; margin-bottom: 16px; }
+
+@media print {
+  @page { size: A4 portrait; margin: 15mm 14mm; }
+  html, body { background: #fff !important; color: #000 !important; font-size: 11pt; }
+  .no-print, header, nav, aside, footer, .mobile-tabbar, .toast-layer { display: none !important; }
+  .print-only { display: block !important; }
+  main { padding: 0 !important; margin: 0 !important; max-width: none !important; width: 100% !important; }
+  .card { border: 0 !important; box-shadow: none !important; }
+  .print-sheet { width: 100% !important; max-width: none !important; padding: 0 !important; }
+  .print-block {
+    break-inside: avoid; page-break-inside: avoid;
+    border: 1px solid #cbd5e1 !important; border-radius: 6px;
+    padding: 10px 12px !important; margin-bottom: 10px !important;
+    background: #fff !important;
+  }
+  .print-block h1, .print-block h2, .print-block h3 { break-after: avoid; page-break-after: avoid; }
+  .print-block img, .tiptap img {
+    max-width: 100% !important; max-height: 85mm !important;
+    object-fit: contain !important; break-inside: avoid; page-break-inside: avoid;
+  }
+  .print-block table, .print-block pre, .print-block blockquote { break-inside: avoid; page-break-inside: avoid; }
+  .tiptap pre { background: #f8fafc !important; color: #111 !important; border: 1px solid #cbd5e1; white-space: pre-wrap; }
+  a { color: #000 !important; text-decoration: none !important; }
+  .page-break { break-before: page; page-break-before: always; }
+}
+
+/* ---------------- v2：日程按日/周/月打印（A4，条目不跨页断裂） ---------------- */
+.print-only-block { display: none; }
+.calendar-print-list { list-style: none; padding-left: 0; margin: 0; }
+@media print {
+  .print-only-block { display: block !important; }
+  .print-sheet h1 { font-size: 16pt; margin: 0 0 4pt; }
+  .print-sheet h2 { font-size: 11pt; margin: 0 0 4pt; break-after: avoid; page-break-after: avoid; }
+  .print-sheet .print-block { margin-bottom: 8px !important; }
+  .print-sheet li { break-inside: avoid; page-break-inside: avoid; }
+  .print-sheet img { max-width: 100% !important; max-height: 80mm !important; object-fit: contain; }
+  /* 月视图 42 格打印时不强制每格一页，按自然流分页 */
+  .print-sheet .calendar-month { column-count: 2; column-gap: 10mm; }
+}
+
+/* ---------------- v4：图片加载失败占位（列表/详情/打印/分享页通用，绝不白屏） ---------------- */
+.img-load-fallback {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 64px; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 8px;
+  background: #f8fafc; color: #64748b; font-size: 12px; text-align: center;
+}
+/* v4：A4 打印时图片不跨页断裂、不截断；整题原图按整块处理 */
+@media print {
+  .print-sheet img, .print-sheet .mistake-image-block, .print-sheet .full-page-original {
+    break-inside: avoid !important; page-break-inside: avoid !important;
+    max-width: 100% !important; max-height: 150mm !important; object-fit: contain !important;
+  }
+  .img-load-fallback { border-color: #999 !important; color: #333 !important; background: #fff !important; }
+}

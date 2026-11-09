@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="错题本">
+  <rect width="192" height="192" rx="42" fill="#4f46e5"/>
+  <path d="M40 52c20-8 40-8 56 2 16-10 36-10 56-2v92c-20-8-40-8-56 2-16-10-36-10-56-2V52z" fill="#fff"/>
+  <path d="M96 54v92" stroke="#c7d2fe" stroke-width="6"/>
+  <path d="M54 78h28M54 98h28M110 78h28M110 98h28" stroke="#a5b4fc" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="139" cy="47" r="24" fill="#ef4444" stroke="#fff" stroke-width="6"/>
+  <path d="M130 38l18 18M148 38l-18 18" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+</svg>
