@@ -12,6 +12,7 @@ export const DEFAULT_SETTINGS_ROW = {
   ai_schedule_parse: true,
   ai_note_summary: true,
   ai_plan: false,
+  ai_textbook_quiz: false,
   ai_text_model: 'qwen3.7-plus',
   ai_vision_model: 'qwen3.7-plus',
   review_intervals: DEFAULT_REVIEW_INTERVALS,

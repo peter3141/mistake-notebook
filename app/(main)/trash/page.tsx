@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Trash2, RotateCcw, ArrowLeft, BookOpen, CalendarDays, ListTodo, StickyNote, Flame, Target } from 'lucide-react'
+import { Trash2, RotateCcw, ArrowLeft, BookOpen, CalendarDays, ListTodo, StickyNote, Flame, Target, Library, ListTree, FileText } from 'lucide-react'
 import { unifiedTrash, restoreTrash, purgeTrash, clearAllTrash } from '@/lib/data-v2'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { ImageTrashPanel } from '@/components/ImageTrashPanel'
@@ -11,7 +11,8 @@ import { TRASH_TYPE_LABEL, type TrashEntityType, type TrashItem } from '@/types'
 import { fmtDateTime } from '@/lib/utils'
 
 const ICONS: Record<TrashEntityType, React.ElementType> = {
-  mistake: BookOpen, schedule: CalendarDays, task: ListTodo, note: StickyNote, habit: Flame, goal: Target
+  mistake: BookOpen, schedule: CalendarDays, task: ListTodo, note: StickyNote, habit: Flame, goal: Target,
+  textbook: Library, chapter: ListTree, material: FileText
 }
 
 /** v2：统一回收站（错题 / 日程 / 待办 / 笔记 / 习惯 / 目标），30 天内可恢复 */
@@ -30,7 +31,9 @@ export default function TrashPage() {
   const purge = async (it: TrashItem) => {
     const tip = it.entity_type === 'mistake' || it.entity_type === 'note'
       ? `确定彻底删除「${it.title}」吗？该条目关联的云端图片会同时从 Storage 删除，无法恢复。`
-      : `确定彻底删除「${it.title}」吗？无法恢复。`
+      : it.entity_type === 'textbook' || it.entity_type === 'chapter' || it.entity_type === 'material'
+        ? `确定彻底删除「${it.title}」吗？其下属章节、知识点/错题关联与课本材料（含 Storage 文件）会一并删除，无法恢复。`
+        : `确定彻底删除「${it.title}」吗？无法恢复。`
     if (!window.confirm(tip)) return
     try { await purgeTrash(it.entity_type, it.entity_id); toast('已彻底删除（含云端图片）', 'ok'); load() }
     catch (e: any) { toast('删除失败：' + e.message, 'err') }
@@ -46,7 +49,7 @@ export default function TrashPage() {
     <div>
       <div className="no-print mb-4 flex flex-wrap items-center gap-3">
         <Link href="/" className="btn-ghost"><ArrowLeft size={16} /> 返回首页</Link>
-        <div className="flex-1"><h1 className="text-xl font-bold text-slate-800">统一回收站</h1><p className="muted">错题、日程、待办、笔记、习惯、目标删除后统一保留 30 天，可随时恢复</p></div>
+        <div className="flex-1"><h1 className="text-xl font-bold text-slate-800">统一回收站</h1><p className="muted">错题、日程、待办、笔记、习惯、目标、课本、章节、课本材料删除后统一保留 30 天，可随时恢复</p></div>
         {rows.length > 0 && <button className="btn-danger" onClick={() => setClearOpen(true)}><Trash2 size={16} /> 清空回收站</button>}
       </div>
 

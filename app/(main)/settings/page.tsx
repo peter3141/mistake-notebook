@@ -21,7 +21,8 @@ const CAPS: { key: keyof UserSettings; label: string; desc: string }[] = [
   { key: 'ai_batch', label: 'AI批量整理', desc: '列表页批量选中后一次整理多题，执行前显示预计调用次数' },
   { key: 'ai_schedule_parse', label: 'AI自然语言创建日程', desc: '/api/ai/schedule-parse：输入一句话先预览，确认后才创建日程' },
   { key: 'ai_note_summary', label: 'AI笔记总结', desc: '/api/ai/note-summary：总结结果先预览，确认后才写入笔记' },
-  { key: 'ai_plan', label: 'AI规划（预留）', desc: '预留能力，默认关闭；不会产生任何调用' }
+  { key: 'ai_plan', label: 'AI规划（预留）', desc: '预留能力，默认关闭；不会产生任何调用' },
+  { key: 'ai_textbook_quiz', label: '课本AI补充出题（v5）', desc: '/api/ai/textbook-quiz：仅在章节有课本材料或摘要时可用；AI 题默认不打印、不进错题库' }
 ]
 
 export default function SettingsPage() {
@@ -132,6 +133,16 @@ export default function SettingsPage() {
           <h2 className="section-title flex items-center gap-2"><Sparkles size={17} className="text-brand-600" /> AI 功能</h2>
           <span className={`rounded-lg border px-2.5 py-1 text-xs font-medium ${statusColor}`}>
             AI功能当前状态：{ai.loading ? '检测中…' : ai.status?.statusText || '已关闭'}
+          </span>
+          {/* v5：课本 AI 出题的独立状态（AI未配置 / 已关闭 / 已开启） */}
+          <span className={`rounded-lg border px-2.5 py-1 text-xs font-medium ${
+            ai.status?.statusText === 'AI未配置' ? 'bg-amber-50 text-amber-700 border-amber-200'
+              : ai.can('textbook_quiz') ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-slate-100 text-slate-600 border-slate-200'
+          }`}>
+            课本AI出题：{ai.loading ? '检测中…'
+              : ai.status?.statusText === 'AI未配置' ? 'AI未配置'
+                : ai.can('textbook_quiz') ? '已开启' : '已关闭'}
           </span>
           {saving && <Loader2 size={15} className="animate-spin text-brand-600" />}
         </div>

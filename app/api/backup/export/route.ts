@@ -4,14 +4,17 @@ import { toCsv } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
-/** v4：合并后 32 张表全量导出（新增图片回收站与清理失败登记表） */
+/** v5：合并后 38 张表全量导出（新增课本模块 6 张表；图片仍只导出路径） */
 const TABLES = [
   'profiles', 'user_settings', 'subjects', 'mistake_books', 'tags', 'mistakes',
   'mistake_images', 'mistake_tags', 'review_logs', 'practice_logs', 'ai_jobs',
   'ai_usage_logs', 'mistake_versions', 'print_templates', 'share_links', 'ocr_jobs',
   'schedules', 'schedule_reminders', 'tasks', 'subtasks', 'notes', 'note_versions',
   'habits', 'habit_logs', 'focus_sessions', 'goals', 'goal_milestones',
-  'attachments', 'trash_items', 'deleted_images', 'image_purge_failures'
+  'attachments', 'trash_items', 'deleted_images', 'image_purge_failures',
+  // v5：课本模块（课本 / 章节 / 映射 / 材料 / 组卷模板）
+  'textbooks', 'textbook_chapters', 'chapter_knowledge_points',
+  'chapter_mistakes', 'textbook_materials', 'textbook_quiz_templates'
 ] as const
 
 /** 一键导出全部数据：JSON 全量备份 / CSV 错题清单 */

@@ -14,6 +14,7 @@ const Patch = z.object({
   ai_schedule_parse: z.boolean().optional(),
   ai_note_summary: z.boolean().optional(),
   ai_plan: z.boolean().optional(),
+  ai_textbook_quiz: z.boolean().optional(),
   reminder_enabled: z.boolean().optional(),
   default_calendar_view: z.enum(['day', 'week', 'month']).optional(),
   default_remind_minutes: z.number().int().min(0).max(1440).optional(),

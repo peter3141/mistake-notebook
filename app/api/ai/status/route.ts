@@ -18,7 +18,7 @@ export async function GET() {
     const empty: AiStatus = {
       enabled: false, caps: {
         organize: false, ocr: false, similar: false, batch: false,
-        schedule: false, note: false, plan: false
+        schedule: false, note: false, plan: false, textbook_quiz: false
       },
       configured: cfg.configured, configIssues: cfg.configIssues,
       textModel: cfg.textModel, visionModel: cfg.visionModel, ocrModel: cfg.ocrModel,
@@ -41,7 +41,8 @@ export async function GET() {
       batch: effective && s.ai_batch,
       schedule: effective && s.ai_schedule_parse,
       note: effective && s.ai_note_summary,
-      plan: effective && s.ai_plan
+      plan: effective && s.ai_plan,
+      textbook_quiz: effective && !!s.ai_textbook_quiz
     },
     configured: cfg.configured,
     configIssues: cfg.configIssues,

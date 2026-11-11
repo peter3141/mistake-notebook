@@ -390,7 +390,7 @@ end $$;
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'mistake-images', 'mistake-images', false, 52428800,
-  array['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']
+  array['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif','application/pdf']
 )
 on conflict (id) do update set
   public = false,
@@ -1184,7 +1184,7 @@ grant execute on function public.list_orphan_images_v4(int) to authenticated;
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'mistake-images', 'mistake-images', false, 8388608,
-  array['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']
+  array['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif','application/pdf']
 )
 on conflict (id) do update set
   public = false,
@@ -1213,7 +1213,12 @@ drop policy if exists "img_delete_own" on storage.objects;
 create policy "img_delete_own" on storage.objects for delete to authenticated
   using (bucket_id = 'mistake-images' and (storage.foldername(name))[1] = auth.uid()::text);
 
-comment on table storage.objects is '私有图片桶 mistake-images；路径 <uid>/mistakes/<整题|inline|cropped|thumbnail>/<实体id>/<uuid>.<ext>';
+-- 路径约定：<uid>/mistakes/<整题|inline|cropped|thumbnail>/<实体id>/<uuid>.<ext>
+-- ⚠️ 这里**不能**写 `comment on table storage.objects ...`：storage.objects 由 Supabase 内部角色
+--    supabase_storage_admin 拥有，SQL Editor 连接的 postgres 既不是 owner 也不是 superuser；
+--    supautils 只代理 policy 语句，不代理 COMMENT / ALTER TABLE，写了会抛
+--    42501 must be owner of table objects 并中断整份脚本。说明信息用普通 SQL 注释保留即可。
+--    （2026-11-09 真实报错后移除，见 docs/05 第 10 步排错表）
 
 -- -------------------------------------------------------------------------------------
 -- IV.10 新表 RLS：与全库一致，用户只能增删改查自己的数据
@@ -1230,6 +1235,21 @@ begin
     $f$, t);
   end loop;
 end $$;
+
+-- -------------------------------------------------------------------------------------
+-- IV.10b v4 新表显式授权（2026-11-09 加固，幂等）
+--   背景：Supabase 自 2026-04-28 起，新建项目可关闭「Automatically expose new tables」；
+--   关闭后 public schema 的新表不再自动获得 Data API 角色的 GRANT，
+--   supabase-js 访问会报 42501 permission denied for table xxx。
+--   本文件 PART IV 的 deleted_images / image_purge_failures 建在 IV.10 之前，
+--   而原有 grant 只在 PART I(421) 与 PART III(907)，覆盖不到这两张新表。
+--   这里补一次全量授权，让 schema.sql 自给自足、不依赖建库时的勾选项。
+--   只授权网站实际使用的 authenticated 与 service_role（分享页 admin client），
+--   不额外给 anon；所有表已由 IV.10 的循环开启 RLS 并写 own_rows 策略。
+-- -------------------------------------------------------------------------------------
+grant usage on schema public to authenticated, service_role;
+grant all on all tables in schema public to authenticated, service_role;
+grant all on all sequences in schema public to authenticated, service_role;
 
 -- -------------------------------------------------------------------------------------
 -- IV.11 自检（在 Supabase SQL Editor 执行，期望结果写在每行后面）

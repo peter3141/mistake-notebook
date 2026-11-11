@@ -7,7 +7,8 @@ export type ReviewResult = 'again' | 'fuzzy' | 'mastered'
 export type Cause = '计算错误' | '概念不清' | '审题错误' | '公式记错' | '步骤遗漏' | '粗心' | '其他'
 export type PrintVariant = 'student' | 'answer' | 'review' | 'cause'
 /** v2 扩展：新增 AI 日程解析 / AI 笔记总结 / AI 规划（预留） */
-export type AiKind = 'organize' | 'ocr' | 'similar' | 'batch' | 'schedule' | 'note' | 'plan'
+/** v5：textbook_quiz = 课本 AI 补充出题（受 AI 总开关 + ai_textbook_quiz 子开关双重控制） */
+export type AiKind = 'organize' | 'ocr' | 'similar' | 'batch' | 'schedule' | 'note' | 'plan' | 'textbook_quiz'
 export type AiCapability = AiKind
 
 export const CAUSES: Cause[] = ['计算错误', '概念不清', '审题错误', '公式记错', '步骤遗漏', '粗心', '其他']
@@ -37,6 +38,7 @@ export interface UserSettings {
   ai_schedule_parse: boolean      // v2：AI 自然语言创建日程
   ai_note_summary: boolean        // v2：AI 笔记总结
   ai_plan: boolean                // v2：AI 规划（预留，默认关）
+  ai_textbook_quiz: boolean       // v5：课本 AI 补充出题（默认关，跨设备同步）
   ai_text_model: string
   ai_vision_model: string
   default_print_template_id: string | null
@@ -538,7 +540,9 @@ export interface Attachment {
   created_at: string
 }
 
+/** v5：课本 / 章节 / 课本材料删除也进统一回收站，30 天内可恢复 */
 export type TrashEntityType = 'mistake' | 'schedule' | 'task' | 'note' | 'habit' | 'goal'
+  | 'textbook' | 'chapter' | 'material'
 export interface TrashItem {
   id: string
   entity_type: TrashEntityType
@@ -548,7 +552,8 @@ export interface TrashItem {
   expires_at: string
 }
 export const TRASH_TYPE_LABEL: Record<TrashEntityType, string> = {
-  mistake: '错题', schedule: '日程', task: '待办', note: '笔记', habit: '习惯', goal: '目标'
+  mistake: '错题', schedule: '日程', task: '待办', note: '笔记', habit: '习惯', goal: '目标',
+  textbook: '课本', chapter: '课本章节', material: '课本材料'
 }
 
 export type SearchModule = 'mistake' | 'schedule' | 'task' | 'note' | 'tag'
@@ -583,6 +588,127 @@ export interface NoteSummaryResult {
   keyPoints: string[]
   tags: string[]
   reviewAdvice: string
+}
+
+// ============================================================
+// v5（按科目课本组卷）：课本 / 章节 / 材料 / 组卷结果类型
+// ============================================================
+
+export interface Textbook {
+  id: string
+  user_id: string
+  subject_id: string | null
+  name: string
+  publisher: string
+  edition: string
+  grade: string
+  volume: string
+  cover_path: string | null
+  note: string
+  deleted_at: string | null
+  created_at: string
+  updated_at: string
+  subject?: Pick<Subject, 'id' | 'name' | 'color'> | null
+  chapterCount?: number
+}
+export type TextbookInput = Partial<Omit<Textbook, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'subject' | 'chapterCount'>>
+
+export interface TextbookChapter {
+  id: string
+  user_id: string
+  textbook_id: string
+  parent_id: string | null
+  level: 1 | 2
+  chapter_no: string
+  title: string
+  page_range: string | null
+  summary: string
+  sort_order: number
+  deleted_at: string | null
+  created_at: string
+  /** 运行时构建的树子节点 */
+  children?: TextbookChapter[]
+  materialCount?: number
+  mistakeCount?: number
+}
+export type ChapterInput = Partial<Omit<TextbookChapter, 'id' | 'user_id' | 'created_at' | 'children' | 'materialCount' | 'mistakeCount'>>
+
+export interface ChapterKnowledgePoint {
+  id: string
+  user_id: string
+  chapter_id: string
+  knowledge_point: string
+  weight: number
+  created_at: string
+}
+
+export interface ChapterMistake {
+  id: string
+  user_id: string
+  chapter_id: string
+  mistake_id: string
+  created_at: string
+}
+
+export type TextbookMaterialType = 'catalog' | 'text' | 'example' | 'image' | 'pdf'
+export interface TextbookMaterial {
+  id: string
+  user_id: string
+  chapter_id: string
+  textbook_id: string | null
+  material_type: TextbookMaterialType
+  storage_path: string | null
+  mime_type: string
+  size_bytes: number
+  ocr_text: string | null
+  file_name: string
+  deleted_at: string | null
+  created_at: string
+  /** 运行时签名 URL，不入库 */
+  signedUrl?: string
+}
+
+export interface TextbookQuizTemplate {
+  id: string
+  user_id: string
+  name: string
+  config: TextbookQuizConfig
+  created_at: string
+}
+
+/** 一次「按科目课本组卷」的可复用配置 */
+export interface TextbookQuizConfig {
+  subject_id: string
+  textbook_id: string
+  chapter_ids: string[]
+  count: number
+  difficulty_min: number
+  difficulty_max: number
+  only_weak: boolean
+}
+
+/** 服务端 AI 出题返回的单题（结构化 JSON，须逐题确认后才进入组卷结果） */
+export interface AiQuizQuestion {
+  stem: string
+  options: string[]
+  answer: string
+  analysis: string
+  chapter: string
+  difficulty: number
+  confidence_note: string
+}
+
+/** 组卷结果中的一道题：真实错题 或 AI 生成题 */
+export type PaperItem =
+  | { key: string; kind: 'real'; mistake: Mistake; chapterTitle: string; matchType: 'direct' | 'knowledge' }
+  | { key: string; kind: 'ai'; question: AiQuizQuestion; chapterTitle: string; includeInPrint: boolean }
+
+/** 粘贴目录自动解析出来的章节草稿 */
+export interface ParsedChapter {
+  chapter_no: string
+  title: string
+  level: 1 | 2
+  sort_order: number
 }
 
 /** 首页聚合仪表盘 */

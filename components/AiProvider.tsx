@@ -19,7 +19,8 @@ const Ctx = createContext<AiCtx>({
 
 const CAP_LABEL: Record<AiCapability, string> = {
   organize: 'AI整理', ocr: 'OCR识题', similar: '相似题推荐', batch: 'AI批量整理',
-  schedule: 'AI日程解析', note: 'AI笔记总结', plan: 'AI规划'
+  schedule: 'AI日程解析', note: 'AI笔记总结', plan: 'AI规划',
+  textbook_quiz: '课本AI补充出题'
 }
 
 export function AiProvider({ children }: { children: React.ReactNode }) {

@@ -32,6 +32,19 @@ export async function POST(req: Request) {
   const file = form.get('file')
   if (!(file instanceof File)) return NextResponse.json({ error: '缺少图片文件' }, { status: 400 })
 
+  // ---------------------------------------------------------------------------
+  // v5 增量分支：课本材料（图片 / PDF 片段）与课本封面。
+  // 复用同一个上传入口 + 同一个私有桶，压缩仍在浏览器端完成；
+  // 数据库只写 storage_path，绝不写 Base64。教材材料不写 mistake_images。
+  // ★ 下面的原有错题图片链路一行未改。
+  // ---------------------------------------------------------------------------
+  const chapterId = String(form.get('chapterId') || '') || null
+  const textbookId = String(form.get('textbookId') || '') || null
+  const isCover = String(form.get('cover') || '') === '1'
+  if (chapterId || (textbookId && isCover)) {
+    return await handleTextbookUpload(supabase, user.id, form, file, chapterId, textbookId, isCover)
+  }
+
   const role = String(form.get('role') || 'inline')
   if (!ROLES.includes(role)) return NextResponse.json({ error: '图片用途不合法' }, { status: 400 })
 
@@ -142,4 +155,94 @@ export async function POST(req: Request) {
     draft_id: mistakeId ? null : draftId,
     thumbnail_path: thumbnailPath
   })
+}
+
+/**
+ * v5：课本材料 / 封面上传。
+ * 顺序：归属校验 → 类型/大小校验 → Storage 上传 → 写 textbook_materials（只存路径）
+ *      → 返回签名 URL。任何一步失败都不写空记录；写库失败回滚文件。
+ * 不使用 service_role，Storage RLS + 数据库 RLS 同时生效。
+ */
+async function handleTextbookUpload(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  form: FormData,
+  file: File,
+  chapterId: string | null,
+  textbookId: string | null,
+  isCover: boolean
+) {
+  const uuidLike = /^[0-9a-fA-F-]{36}$/
+  if (chapterId && !uuidLike.test(chapterId)) return NextResponse.json({ error: '章节 id 格式不合法' }, { status: 400 })
+  if (textbookId && !uuidLike.test(textbookId)) return NextResponse.json({ error: '课本 id 格式不合法' }, { status: 400 })
+
+  let bookId = textbookId
+  if (chapterId) {
+    const { data: chapter } = await supabase.from('textbook_chapters')
+      .select('id, textbook_id').eq('id', chapterId).eq('user_id', userId).is('deleted_at', null).maybeSingle()
+    if (!chapter) return NextResponse.json({ error: '章节不存在或无权访问' }, { status: 403 })
+    bookId = chapter.textbook_id
+  } else if (textbookId) {
+    const { data: book } = await supabase.from('textbooks')
+      .select('id').eq('id', textbookId).eq('user_id', userId).is('deleted_at', null).maybeSingle()
+    if (!book) return NextResponse.json({ error: '课本不存在或无权访问' }, { status: 403 })
+  } else {
+    return NextResponse.json({ error: '缺少课本或章节 id' }, { status: 400 })
+  }
+
+  const imageMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
+  const allowed = chapterId ? [...imageMimes, 'application/pdf'] : imageMimes
+  if (!allowed.includes(file.type)) {
+    return NextResponse.json({ error: `不支持的文件类型：${file.type || '(未知)'}（课本材料支持图片与 PDF）` }, { status: 415 })
+  }
+  if (file.size === 0) return NextResponse.json({ error: '空文件' }, { status: 400 })
+  const maxBytes = file.type === 'application/pdf' ? 20 * 1024 * 1024 : 8 * 1024 * 1024
+  if (file.size > maxBytes) {
+    return NextResponse.json({ error: `文件超过 ${Math.round(maxBytes / 1024 / 1024)}MB 上限，请压缩后再上传` }, { status: 413 })
+  }
+
+  const ext = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png'
+    : file.type === 'image/gif' ? 'gif' : file.type === 'application/pdf' ? 'pdf' : 'webp'
+  const objectName = `${crypto.randomUUID()}.${ext}`
+  const path = chapterId
+    ? `${userId}/textbooks/${chapterId}/${objectName}`
+    : `${userId}/textbooks/cover/${textbookId}/${objectName}`
+
+  const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
+    contentType: file.type, upsert: false, cacheControl: '3600'
+  })
+  if (upErr) return NextResponse.json({ error: `课本材料上传失败：${upErr.message}（未写入任何数据库记录）` }, { status: 502 })
+
+  const { data: signed } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600)
+
+  if (isCover) {
+    const { error } = await supabase.from('textbooks').update({ cover_path: path }).eq('id', textbookId!).eq('user_id', userId)
+    if (error) {
+      await supabase.storage.from(BUCKET).remove([path])
+      return NextResponse.json({ error: `封面已上传但登记失败：${error.message}（已回滚文件）` }, { status: 502 })
+    }
+    return NextResponse.json({ cover_path: path, signedUrl: signed?.signedUrl || '' })
+  }
+
+  const materialType = String(form.get('materialType') || 'image')
+  if (!['catalog', 'text', 'example', 'image', 'pdf'].includes(materialType)) {
+    await supabase.storage.from(BUCKET).remove([path])
+    return NextResponse.json({ error: '课本材料类型不合法' }, { status: 400 })
+  }
+  const { data: row, error: dbErr } = await supabase.from('textbook_materials').insert({
+    user_id: userId,
+    chapter_id: chapterId,
+    textbook_id: bookId,
+    material_type: materialType,
+    storage_path: path,                       // ★ 只存路径，不存 Base64 / 二进制
+    mime_type: file.type,
+    size_bytes: file.size,
+    ocr_text: String(form.get('ocrText') || '').trim() || null,
+    file_name: file.name.slice(0, 200)
+  }).select('*').single()
+  if (dbErr) {
+    await supabase.storage.from(BUCKET).remove([path])
+    return NextResponse.json({ error: `课本材料已上传但登记失败：${dbErr.message}（已回滚文件，可重试）` }, { status: 502 })
+  }
+  return NextResponse.json({ material: row, signedUrl: signed?.signedUrl || '' })
 }

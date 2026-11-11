@@ -35,9 +35,19 @@ export default function PrintPage() {
         const ids = q.get('ids')?.split(',').filter(Boolean) || []
         const filter = q.get('filter')
         const paperIds = JSON.parse(sessionStorage.getItem('practice-paper') || '[]') as string[]
+        // v5：只有用户在组卷结果里逐题手动勾选「加入学生版打印」的 AI 题才会出现在这里；
+        //     它们只存在于 sessionStorage，不写入 mistakes 表，标题/正文自带「AI生成，需核对」标注。
+        const paperAi = JSON.parse(sessionStorage.getItem('practice-paper-ai') || '[]') as Mistake[]
+        const paperVariant = sessionStorage.getItem('practice-paper-variant')
         if (ids.length) { setMistakes(await Promise.all(ids.map(getMistake))); setSource(`选中 ${ids.length} 道错题`) }
         else if (filter) { const r = await listMistakes({ ...JSON.parse(filter), pageSize: 200 }); setMistakes(r.rows); setSource(`筛选结果 ${r.rows.length} 道`) }
-        else if (paperIds.length) { setMistakes(await Promise.all(paperIds.map(getMistake))); setSource(`随机组卷 ${paperIds.length} 道`); setVariant('answer') }
+        else if (paperIds.length || paperAi.length) {
+          const base = paperIds.length ? await Promise.all(paperIds.map(getMistake)) : []
+          setMistakes([...base, ...paperAi])
+          setSource(`组卷 ${base.length} 道真实错题${paperAi.length ? ` + ${paperAi.length} 道手动勾选的 AI 生成题（需核对）` : ''}`)
+          // 手动勾选「加入学生版打印」的 AI 题存在时，默认落到学生版；模板本身不变
+          setVariant(paperVariant === 'student' ? 'student' : 'answer')
+        }
         else { const r = await listMistakes({ pageSize: 20 }); setMistakes(r.rows); setSource('最近 20 道（默认）') }
         setTemplates(await listPrintTemplates())
       } catch (e: any) { toast('加载打印数据失败：' + e.message, 'err') }

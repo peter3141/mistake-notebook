@@ -41,7 +41,18 @@ function extractRows(data: any) {
   const tasks: any[] = Array.isArray(data?.tasks) ? data.tasks.slice(0, 1000) : []
   const schedules: any[] = Array.isArray(data?.schedules) ? data.schedules.slice(0, 1000) : []
   const habits: any[] = Array.isArray(data?.habits) ? data.habits.slice(0, 1000) : []
-  return { rows, mapping, notes, tasks, schedules, habits }
+  // v5：课本模块的 6 张表已纳入 JSON 全量备份，预览时如实显示条数。
+  //     关联 id（章节 parent_id / 映射 chapter_id）需要重新映射，自动恢复未实现；
+  //     文档里明确标注：恢复时请用「粘贴目录导入章节」重建，再重新关联知识点与错题。
+  const textbookCounts = {
+    课本: Array.isArray(data?.textbooks) ? data.textbooks.length : 0,
+    课本章节: Array.isArray(data?.textbook_chapters) ? data.textbook_chapters.length : 0,
+    章节知识点: Array.isArray(data?.chapter_knowledge_points) ? data.chapter_knowledge_points.length : 0,
+    章节错题: Array.isArray(data?.chapter_mistakes) ? data.chapter_mistakes.length : 0,
+    课本材料: Array.isArray(data?.textbook_materials) ? data.textbook_materials.length : 0,
+    组卷模板: Array.isArray(data?.textbook_quiz_templates) ? data.textbook_quiz_templates.length : 0
+  }
+  return { rows, mapping, notes, tasks, schedules, habits, textbookCounts }
 }
 
 /** 导入前必须预览字段映射；确认后按新 id 追加，不覆盖已有数据（v2 支持全部模块） */
@@ -52,8 +63,9 @@ export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => ({})))
   if (!parsed.success) return NextResponse.json({ error: '参数不合法' }, { status: 400 })
   const { preview, data } = parsed.data
-  const { rows, mapping, notes, tasks, schedules, habits } = extractRows(data)
-  const total = rows.length + notes.length + tasks.length + schedules.length + habits.length
+  const { rows, mapping, notes, tasks, schedules, habits, textbookCounts } = extractRows(data)
+  const textbookTotal = Object.values(textbookCounts).reduce((a, b) => a + b, 0)
+  const total = rows.length + notes.length + tasks.length + schedules.length + habits.length + textbookTotal
   if (!total) return NextResponse.json({ error: '没有识别到可导入的数据，请检查备份格式', code: 'NO_ROWS' }, { status: 400 })
 
   if (preview) {
@@ -61,12 +73,12 @@ export async function POST(req: Request) {
       count: rows.length, mapping,
       modules: {
         错题: rows.length, 笔记: notes.length, 待办: tasks.length,
-        日程: schedules.length, 习惯: habits.length
+        日程: schedules.length, 习惯: habits.length, ...textbookCounts
       },
       sample: rows[0]
         ? `${String(rows[0].title || '').slice(0, 30)} | ${String(rows[0].content || '').replace(/<[^>]*>/g, '').slice(0, 40)}`
         : `${notes[0]?.title || tasks[0]?.title || schedules[0]?.title || habits[0]?.name || '(无标题)'}（其它模块）`,
-      note: '确认导入后会按新 id 追加，不会覆盖已有数据；图片只导入路径记录，需保留原 Storage 桶。'
+      note: '确认导入后会按新 id 追加，不会覆盖已有数据；图片只导入路径记录，需保留原 Storage 桶。课本模块（课本/章节/知识点/错题关联/材料/模板）已随 JSON 备份导出，但自动恢复未实现（关联 id 需要重新映射）：请用「课本 → 粘贴目录批量导入章节」重建章节树，再重新关联知识点与错题；材料路径记录可对照备份手工补录。'
     })
   }
 

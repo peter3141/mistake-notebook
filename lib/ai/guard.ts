@@ -23,28 +23,31 @@ export const DEFAULT_AI_SETTINGS = {
   ai_schedule_parse: true,      // v2：AI 自然语言创建日程
   ai_note_summary: true,        // v2：AI 笔记总结
   ai_plan: false,               // v2：AI 规划预留，默认关
+  ai_textbook_quiz: false,      // v5：课本 AI 补充出题，默认关 = 零调用零费用
   ai_text_model: 'qwen3.7-plus',
   ai_vision_model: 'qwen3.7-plus'
 }
 
 type AiFlag = 'ai_enabled' | 'ai_organize' | 'ai_ocr' | 'ai_similar' | 'ai_batch'
-  | 'ai_schedule_parse' | 'ai_note_summary' | 'ai_plan'
+  | 'ai_schedule_parse' | 'ai_note_summary' | 'ai_plan' | 'ai_textbook_quiz'
 const CAP_FIELD: Record<AiCapability, AiFlag> = {
   organize: 'ai_organize', ocr: 'ai_ocr', similar: 'ai_similar', batch: 'ai_batch',
-  schedule: 'ai_schedule_parse', note: 'ai_note_summary', plan: 'ai_plan'
+  schedule: 'ai_schedule_parse', note: 'ai_note_summary', plan: 'ai_plan',
+  textbook_quiz: 'ai_textbook_quiz'
 }
 const CAP_LABEL: Record<AiCapability, string> = {
   organize: 'AI整理错题', ocr: 'OCR/图片识题', similar: '相似题推荐', batch: 'AI批量整理',
-  schedule: 'AI日程解析', note: 'AI笔记总结', plan: 'AI规划'
+  schedule: 'AI日程解析', note: 'AI笔记总结', plan: 'AI规划',
+  textbook_quiz: '课本AI补充出题'
 }
 
 export async function readSettings(supabase: ReturnType<typeof createClient>, userId: string) {
   const { data } = await supabase
     .from('user_settings')
-    .select('ai_enabled, ai_organize, ai_ocr, ai_similar, ai_batch, ai_schedule_parse, ai_note_summary, ai_plan, ai_text_model, ai_vision_model, prompt_template, review_intervals')
+    .select('ai_enabled, ai_organize, ai_ocr, ai_similar, ai_batch, ai_schedule_parse, ai_note_summary, ai_plan, ai_textbook_quiz, ai_text_model, ai_vision_model, prompt_template, review_intervals')
     .eq('user_id', userId).maybeSingle()
   return { ...DEFAULT_AI_SETTINGS, ...(data || {}) } as Pick<UserSettings,
-    'ai_enabled' | 'ai_organize' | 'ai_ocr' | 'ai_similar' | 'ai_batch' | 'ai_schedule_parse' | 'ai_note_summary' | 'ai_plan'
+    'ai_enabled' | 'ai_organize' | 'ai_ocr' | 'ai_similar' | 'ai_batch' | 'ai_schedule_parse' | 'ai_note_summary' | 'ai_plan' | 'ai_textbook_quiz'
     | 'ai_text_model' | 'ai_vision_model' | 'prompt_template' | 'review_intervals'>
 }
 

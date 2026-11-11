@@ -23,7 +23,8 @@ async function me() {
 
 const TABLE_OF: Record<TrashEntityType, string> = {
   mistake: 'mistakes', schedule: 'schedules', task: 'tasks',
-  note: 'notes', habit: 'habits', goal: 'goals'
+  note: 'notes', habit: 'habits', goal: 'goals',
+  textbook: 'textbooks', chapter: 'textbook_chapters', material: 'textbook_materials'
 }
 
 // ===========================================================================
@@ -455,6 +456,18 @@ export async function purgeTrash(type: TrashEntityType, id: string) {
   if (type === 'mistake') {
     const { removeStorageFilesForMistake } = await import('./data')
     await removeStorageFilesForMistake(id)
+  }
+  // v5：课本材料彻底删除时，才物理删除 Storage 里的图片 / PDF 文件；
+  //     软删除（回收站）阶段保留文件，30 天内可恢复。
+  if (type === 'material' || type === 'chapter' || type === 'textbook') {
+    const supabase = db2()
+    let q = supabase.from('textbook_materials').select('storage_path')
+    if (type === 'material') q = q.eq('id', id)
+    else if (type === 'chapter') q = q.eq('chapter_id', id)
+    else q = q.eq('textbook_id', id)
+    const { data: mats } = await q
+    const paths = [...new Set((mats || []).map((m: any) => m.storage_path as string).filter(Boolean))]
+    if (paths.length) await supabase.storage.from('mistake-images').remove(paths)
   }
   // 笔记正文里的 data-storage-path 图片同样在彻底删除时清理
   if (type === 'note') {

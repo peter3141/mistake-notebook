@@ -11,6 +11,7 @@
     "verify:export": "node scripts/verify-export.mjs",
     "verify:images": "node scripts/verify-image-arch.mjs",
     "verify:migration": "node scripts/verify-migration.mjs",
+    "verify:textbooks": "node scripts/verify-textbooks.mjs",
     "migrate:images": "node scripts/migrate-images.mjs",
     "migrate:images:dry": "node scripts/migrate-images.mjs --dry-run",
     "healthcheck": "node scripts/healthcheck.mjs"

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, CalendarDays, ListTodo, BookOpen, StickyNote, Repeat2,
-  Flame, Timer, Target, Search, Printer, BarChart3, Settings, Trash2, LogOut
+  Flame, Timer, Target, Search, Printer, BarChart3, Settings, Trash2, LogOut, Library
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,7 @@ const NAV = [
   { href: '/mistakes', label: '错题', icon: BookOpen },
   { href: '/notes', label: '笔记', icon: StickyNote },
   { href: '/review', label: '复习', icon: Repeat2 },
+  { href: '/textbooks', label: '课本', icon: Library },
   { href: '/habits', label: '习惯', icon: Flame },
   { href: '/focus', label: '专注', icon: Timer },
   { href: '/goals', label: '目标', icon: Target },
